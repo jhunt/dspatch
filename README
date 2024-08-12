@@ -1,0 +1,115 @@
+This little Flask app is meant to run on loopback and be accessible to the
+Streamlit app for background processes.  Interaction should go something
+like this:
+
+```
+POST /work/:job/:batch
+[{"details":1},{"details":2}]
+
+curl --data-binary '[{"a":1},{"a":2}]' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  http://74.207.232.67:5000/work/j1/batch1
+```
+
+First, the Streamlit app posts work to be done, as a pre-arranged job, and a
+unique batch identifier.  This creates rows in the work table that are
+timestamped and have proper timestamps (null started / completed, current as
+requested at) and status ('requested').
+
+Then, the Streamlit app pokes the worker:
+
+```
+GET /status/:job
+
+curl http://74.207.232.67:5000/status/j1
+```
+
+Which returns the progress:
+
+```
+{
+  "batch_id": "batch1",
+  "is_done": true,
+  "is_running": false,
+  "job_id": "j1",
+  "ntasks_finished": 2,
+  "ntasks_not_started": 0,
+  "ntasks_started": 0,
+  "ntasks_total": 2
+}
+```
+
+The backend has a thread that implements the work and updates the status.
+Initially, we will implement with a local fs mkdir component.
+
+To get the next 10 things to work on:
+
+```
+GET /next/:job/:n
+
+curl http://74.207.232.67:5000/next/j1/10
+```
+
+Which returns the details:
+
+```
+[
+  {
+    "batch_id": "batch1",
+    "details": {
+      "a": 1
+    },
+    "job_id": "j1",
+    "task_number": 1
+  },
+  {
+    "batch_id": "batch1",
+    "details": {
+      "a": 2
+    },
+    "job_id": "j1",
+    "task_number": 2
+  }
+]
+```
+
+Then, as items are started, feed their task numbers into /start:
+
+```
+POST /start/:job/:batch/:status
+[1,2,3]
+
+curl --data-binary '[1,2]' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  http://74.207.232.67:5000/start/j1/batch1/started
+```
+
+If work needs to be abandoned:
+
+```
+POST /abandon/:job/:batch
+[2]
+
+curl --data-binary '[1]' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  http://74.207.232.67:5000/abandon/j1/batch1
+```
+
+As work items are completed:
+
+```
+POST /finish/:job/:batch/:status
+[1]
+
+curl --data-binary '[1]' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  http://74.207.232.67:5000/finish/j1/batch1/done
+```
+
+Note that both `/start/` and `/finish/` require a `:status` parameter,
+but `/abandon/` does not; if you are abandoning a task, the only status
+that makes sense is "abandoned".

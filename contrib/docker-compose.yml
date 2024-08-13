@@ -1,0 +1,13 @@
+version: '3'
+services:
+  app:
+    image: filefrog/dspatch
+    volumes:
+      - ./_/data:/data
+    ports:
+      - 5000:5000
+    environment:
+      - DATABASE=/data/dspatch.db
+    labels: # this part is for dproxy; DM me if you're curious
+      - com.huntprod.docker.route=ds.example.com
+      - com.huntprod.docker.port=5000

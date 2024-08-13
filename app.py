@@ -147,7 +147,6 @@ def job_status(job):
   if r is None:
     return {'error':'not found'}, 404
 
-  (batch_id, ntasks_not_started, ntasks_started, ntasks_finished, ntasks_total) = (r)
   return {
     'job_id'             : job,
     'batch_id'           : r[0],

@@ -1,14 +1,28 @@
-import sqlite3
-import json
-from flask import g, Flask, request
+import os, json, sqlite3
+from flask import g, Flask, request, make_response, jsonify
+from functools import wraps
 
-DATABASE = 'app.db'
+DATABASE = os.getenv('DISPATCH_DATABASE', 'app.db')
 
 def get_db():
   db = getattr(g, '_database', None)
   if db is None:
     db = g._database = sqlite3.connect(DATABASE)
   return db
+
+def api_key_required(f):
+  @wraps(f)
+  def inner(*args, **kwargs):
+    key = None
+    if 'authorization' in request.headers and request.headers['authorization'].startswith('API-Key '):
+      key = request.headers['authorization'][8:]
+    if key is None:
+      return make_response(jsonify({'error': 'Authorization header required'}), 401)
+    r = get_db().cursor().execute('select key from in_force_api_keys where key = ?', (key,))
+    if r.fetchone() is None:
+      return make_response(jsonify({'error': 'Authorization key invalid'}), 403)
+    return f(*args, **kwargs)
+  return inner
 
 app = Flask(__name__)
 
@@ -18,11 +32,8 @@ def close_connection(exception):
   if db is not None:
     db.close()
 
-# both keyed by job
-working = {}
-memory = {}
-
 @app.route('/work/<job>/<batch>', methods=['POST'])
+@api_key_required
 def create_work(job, batch):
   data = []
   for detail in request.get_json():
@@ -36,6 +47,7 @@ def create_work(job, batch):
   return {'ok': 'created'}
 
 @app.route('/next/<job>/<n>', methods=['GET'])
+@api_key_required
 def next_work(job, n):
   cur = get_db().cursor()
   # FIXME sanitize n
@@ -56,6 +68,7 @@ def next_work(job, n):
   return response
 
 @app.route('/start/<job>/<batch>/<status>', methods=['POST'])
+@api_key_required
 def start_work(job, batch, status):
   data = []
   for id in request.get_json():
@@ -76,6 +89,7 @@ def start_work(job, batch, status):
   return {'ok': 'started'}
 
 @app.route('/abandon/<job>/<batch>', methods=['POST'])
+@api_key_required
 def abandon_work(job, batch):
   data = []
   for id in request.get_json():
@@ -96,6 +110,7 @@ def abandon_work(job, batch):
   return {'ok': 'abandoned'}
 
 @app.route('/finish/<job>/<batch>/<status>', methods=['POST'])
+@api_key_required
 def finish_work(job, batch, status):
   data = []
   for id in request.get_json():
@@ -116,6 +131,7 @@ def finish_work(job, batch, status):
   return {'ok': 'finished'}
 
 @app.route('/status/<job>', methods=['GET'])
+@api_key_required
 def job_status(job):
   cur = get_db().cursor()
   r = cur.execute('''

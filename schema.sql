@@ -35,3 +35,17 @@ select job_id,
  group by job_id, batch_id
  order by job_id asc
 ;
+
+create table if not exists api_keys (
+  shared_key      text,
+  enabled_after   timestamp,
+  disabled_after  timestamp,
+  notes           text
+);
+drop view if exists in_force_api_keys;
+create view in_force_api_keys as
+select shared_key as key
+  from api_keys
+ where current_timestamp between enabled_after
+                             and disabled_after
+;

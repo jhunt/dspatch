@@ -52,7 +52,7 @@ def next_work(job, n):
   cur = get_db().cursor()
   # FIXME sanitize n
   r = cur.execute(f'''
-    select job_id, batch_id, task_number, details
+    select job_id, batch_id, task_number, details||''
       from current_tasks
      where job_id = ?
        and started_at is null

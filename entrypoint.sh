@@ -1,8 +1,8 @@
 #!/bin/sh
 if [ "x${1}" = "x" ]; then
-  test -f $DISPATCH_DATABASE \
-  || cp /build/dispatch.db $DISPATCH_DATABASE
-  ls -lh $DISPATCH_DATABASE
+  test -f $DATABASE \
+  || cp /build/dspatch.db $DATABASE
+  ls -lh $DATABASE
 
   exec flask run --host $BIND_HOST --port $BIND_PORT
   exit 7

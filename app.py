@@ -2,7 +2,7 @@ import os, json, sqlite3
 from flask import g, Flask, request, make_response, jsonify
 from functools import wraps
 
-DATABASE = os.getenv('DISPATCH_DATABASE', 'app.db')
+DATABASE = os.getenv('DATABASE', 'app.db')
 
 def get_db():
   db = getattr(g, '_database', None)

@@ -139,18 +139,21 @@ def job_status(job):
            ntasks_not_started,
            ntasks_started,
            ntasks_finished,
-           ntasks_total
+           ntasks_total,
+           case when ntasks_started > 0             then 'Y' else 'N' end as is_running,
+           case when ntasks_total = ntasks_finished then 'Y' else 'N' end as is_done
       from current_status
-     where job_id = ?''', (job,))
-  (batch_id, ntasks_not_started, ntasks_started, ntasks_finished, ntasks_total) = (r.fetchone())
+     where job_id = ?''', (job,)).fetchone()
+
+  (batch_id, ntasks_not_started, ntasks_started, ntasks_finished, ntasks_total) = (r)
   return {
-    'job_id': job,
-    'batch_id': batch_id,
-    'ntasks_not_started': ntasks_not_started,
-    'ntasks_started': ntasks_started,
-    'ntasks_finished': ntasks_finished,
-    'ntasks_total': ntasks_total,
-    'is_running': ntasks_started > 0,
-    'is_done': ntasks_total == ntasks_finished
+    'job_id'             : job,
+    'batch_id'           : r[0],
+    'ntasks_not_started' : r[1],
+    'ntasks_started'     : r[2],
+    'ntasks_finished'    : r[3],
+    'ntasks_total'       : r[4],
+    'is_running'         : r[5] == 'Y',
+    'is_done'            : r[6] == 'Y'
   }
 

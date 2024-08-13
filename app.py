@@ -144,6 +144,8 @@ def job_status(job):
            case when ntasks_total = ntasks_finished then 'Y' else 'N' end as is_done
       from current_status
      where job_id = ?''', (job,)).fetchone()
+  if r is None:
+    return {'error':'not found'}, 404
 
   (batch_id, ntasks_not_started, ntasks_started, ntasks_finished, ntasks_total) = (r)
   return {

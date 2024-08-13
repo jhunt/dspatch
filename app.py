@@ -42,7 +42,7 @@ def create_work(job, batch):
   cur = db.cursor()
   cur.executemany('''
     insert into tasks (job_id, batch_id, task_number, details)
-              values (?, ?, ?, ?)''', data)
+               values (?, ?, ?, ?)''', data)
   db.commit()
   return {'ok': 'created'}
 
